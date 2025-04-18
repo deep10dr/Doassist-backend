@@ -1,68 +1,73 @@
 import os
-import json
-import wave
 import sys
+import json
 import ffmpeg
-import whisper  # OpenAI Whisper
+import whisper
 import torch
 
-# Paths
-MODEL_PATH = "small"  # Whisper model: "tiny", "small", "medium", "large"
-INPUT_AUDIO = "./sample.wav"  # Input audio file
-CONVERTED_AUDIO = "./sample_fixed.wav"  # Fixed WAV output
-JSON_OUTPUT = "./transcription.json"  # Output JSON file
+# Config
+MODEL_NAME    = "small"                      # tiny, small, medium, large
+INPUT_AUDIO   = "sample.wav"
+CONVERTED_WAV = "sample_fixed.wav"
+JSON_OUTPUT   = "transcription.json"
 
-# Convert audio to 16-bit PCM WAV
-def convert_audio(input_file, output_file):
+def eprint(*args, **kwargs):
+    """Print to stderr."""
+    print(*args, file=sys.stderr, **kwargs)
+
+def convert_audio(input_path, output_path):
     try:
-        ffmpeg.input(input_file).output(
-            output_file,
-            ac=1,  # Mono audio
-            ar=16000,  # 16kHz sample rate
-            format="wav",
-            acodec="pcm_s16le"
-        ).run(overwrite_output=True)
-        print(f"✅ Converted {input_file} to {output_file}")
+        (
+            ffmpeg
+            .input(input_path)
+            .output(output_path, ac=1, ar=16000, format="wav", acodec="pcm_s16le")
+            .run(overwrite_output=True, capture_stdout=True, capture_stderr=True)
+        )
     except ffmpeg.Error as e:
-        print("❌ FFmpeg conversion failed:", e)
+        eprint("❌ FFmpeg conversion failed:", e)
         sys.exit(1)
 
-# Load OpenAI Whisper Model
-def load_whisper_model():
-    print("⏳ Loading Whisper model...")
+def load_model(name):
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = whisper.load_model(MODEL_PATH, device=device)
-    print("✅ Whisper model loaded successfully.")
+    try:
+        model = whisper.load_model(name, device=device)
+    except Exception as e:
+        eprint("❌ Failed to load Whisper model:", e)
+        sys.exit(1)
     return model
 
-# Transcribe Audio
-def transcribe_audio(model, wav_path):
-    print(f"🎙️ Transcribing: {wav_path}")
-    result = model.transcribe(wav_path, fp16=False, language="en")  # Disable FP16 for CPU
-    return result["text"]
-
-# Save Transcription to JSON
-def save_transcription(text, json_path):
-    with open(json_path, "w", encoding="utf-8") as json_file:
-        json.dump({"transcription": text}, json_file, indent=4, ensure_ascii=False)
-    print(f"📄 Transcription saved to {json_path}")
-
-# Main Execution
-if __name__ == "__main__":
-    if not os.path.exists(INPUT_AUDIO):
-        print(f"❌ Audio file '{INPUT_AUDIO}' not found!", file=sys.stderr)
+def transcribe(model, wav_path):
+    try:
+        result = model.transcribe(wav_path, fp16=False, language="en")
+        return result.get("text", "")
+    except Exception as e:
+        eprint("❌ Transcription failed:", e)
         sys.exit(1)
 
-    # Step 1: Convert audio if needed
-    convert_audio(INPUT_AUDIO, CONVERTED_AUDIO)
+def main():
+    # 1. Check input file
+    if not os.path.exists(INPUT_AUDIO):
+        eprint(f"❌ Input audio not found: {INPUT_AUDIO}")
+        sys.exit(1)
 
-    # Step 2: Load Whisper model
-    model = load_whisper_model()
+    # 2. Convert
+    convert_audio(INPUT_AUDIO, CONVERTED_WAV)
 
-    # Step 3: Transcribe converted audio
-    transcription = transcribe_audio(model, CONVERTED_AUDIO)
+    # 3. Load model
+    model = load_model(MODEL_NAME)
 
-    # Step 4: Save output
-    save_transcription(transcription, JSON_OUTPUT)
+    # 4. Transcribe
+    text = transcribe(model, CONVERTED_WAV)
 
-    print("📝 Transcription:", transcription)  # Print transcription
+    # 5. Save JSON file (optional)
+    try:
+        with open(JSON_OUTPUT, "w", encoding="utf-8") as f:
+            json.dump({"transcription": text}, f, ensure_ascii=False, indent=4)
+    except Exception as e:
+        eprint("⚠️ Could not write JSON file:", e)
+
+    # 6. **Print only the JSON to stdout** for your Node.js caller
+    print(json.dumps({"transcription": text}, ensure_ascii=False))
+
+if __name__ == "__main__":
+    main()
