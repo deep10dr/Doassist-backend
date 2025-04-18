@@ -8,9 +8,9 @@ import torch
 
 # Paths
 MODEL_PATH = "small"  # Whisper model: "tiny", "small", "medium", "large"
-INPUT_AUDIO = "D:/React/Mini-project/Backend/sample.wav"  # Input audio file
-CONVERTED_AUDIO = "D:/React/Mini-project/Backend/sample_fixed.wav"  # Fixed WAV output
-JSON_OUTPUT = "D:/React/Mini-project/Backend/transcription.json"  # Output JSON file
+INPUT_AUDIO = "./sample.wav"  # Input audio file
+CONVERTED_AUDIO = "./sample_fixed.wav"  # Fixed WAV output
+JSON_OUTPUT = "./transcription.json"  # Output JSON file
 
 # Convert audio to 16-bit PCM WAV
 def convert_audio(input_file, output_file):
