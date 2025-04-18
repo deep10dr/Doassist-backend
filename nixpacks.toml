@@ -1,2 +1,2 @@
-[phases.setup]
-aptPkgs = ["ffmpeg"]
+[tools]
+ffmpeg = "4.4"
