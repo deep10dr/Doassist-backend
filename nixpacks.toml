@@ -1,2 +1,2 @@
-[nix]
-packages = ["ffmpeg", "python312", "nodejs_18"]
+[phases.setup]
+aptPkgs = ["ffmpeg"]

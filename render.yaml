@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: doassist-backend
+    env: node
+    buildCommand: |
+      apt-get update && apt-get install -y ffmpeg
+      npm install
+      pip install -r requirements.txt
+    startCommand: node index.js
+    envVars:
+      - key: NODE_ENV
+        value: production

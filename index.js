@@ -54,4 +54,4 @@ app.use('/',routes)
 
 
 
-app.listen(port, () => console.log(`Server running on the port ${port}`));
+app.listen(port, () => console.log(`Server running on localhost://${port}`));
