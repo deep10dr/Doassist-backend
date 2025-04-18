@@ -1,2 +1,2 @@
-[tools]
-ffmpeg = "4.4"
+[nix]
+packages = ["ffmpeg", "python312", "nodejs_18"]
